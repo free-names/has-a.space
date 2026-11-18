@@ -1,0 +1,30 @@
+name: Publish
+
+on:
+    push:
+        branches: [main]
+        paths:
+            - "domains/**"
+            - ".github/workflows/publish.yml"
+            - "scripts/dnsconfig.js"
+
+    workflow_dispatch:
+
+concurrency:
+    group: ${{ github.ref }}-publish
+    cancel-in-progress: false
+
+jobs:
+    dns:
+        name: DNS
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - run: echo '{"cloudflare":{"TYPE":"CLOUDFLAREAPI","apitoken":"$CLOUDFLARE_API_TOKEN"}}' > ./creds.json
+
+            # Official image, so the Cloudflare token never reaches a third-party action
+            - name: Publish
+              env:
+                  CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+              run: docker run --rm -e CLOUDFLARE_API_TOKEN -v "$PWD":/w -w /w ghcr.io/stackexchange/dnscontrol:4.36.1 push --config scripts/dnsconfig.js

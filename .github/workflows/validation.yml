@@ -1,0 +1,40 @@
+name: Validation
+
+on:
+    pull_request:
+
+    push:
+        branches: [main]
+        paths:
+            - "domains/**"
+            - ".github/workflows/validation.yml"
+            - "scripts/dnsconfig.js"
+
+    workflow_dispatch:
+
+concurrency:
+    group: ${{ github.ref }}-validation
+    cancel-in-progress: true
+
+jobs:
+    dns:
+        name: DNS
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Check
+              run: docker run --rm -v "$PWD":/w -w /w ghcr.io/stackexchange/dnscontrol:4.36.1 check --config scripts/dnsconfig.js
+
+    json:
+        name: JSON
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: JSON Syntax Check
+              uses: limitusus/json-syntax-check@v2
+              with:
+                  pattern: "\\.json$"
+              env:
+                  BASE: "domains/"
